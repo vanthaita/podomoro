@@ -24,43 +24,44 @@ export const SoundCloud = ({
   style = {},
   wide = false,
   width = wide ? "100%" : 300,
-  height = wide ? 166 : 166,
-  frameBorder = 0,
-  allow = "autoplay",
-  color = "#ff5500",
-  autoPlay = false,
-  hideRelated = true,
-  showComments = false,
-  showUser = true,
-  showReposts = false,
+    height = wide ? 166 : 166,
+    frameBorder = 0,
+    allow = "autoplay",
+    color = "#ff5500",
+    autoPlay = false,
+    hideRelated = true,
+    showComments = false,
+    showUser = true,
+    showReposts = false,
     visual = true,
-  ...props
+    ...props
 }: SoundCloudProps) => {
-    const url = new URL(link);
-    const trackPath = url.pathname;
+  const url = new URL(link);
+  const trackPath = url.pathname;
 
-    let trackUrl = `https://w.soundcloud.com/player/?url=https%3A//soundcloud.com${trackPath}&color=${encodeURIComponent(color)}&auto_play=${autoPlay}&hide_related=${hideRelated}&show_comments=${showComments}&show_user=${showUser}&show_reposts=${showReposts}&visual=${visual}`
-
+  let trackUrl = `https://w.soundcloud.com/player/?url=https%3A//soundcloud.com${trackPath}&color=${encodeURIComponent(color)}&auto_play=${autoPlay}&hide_related=${hideRelated}&show_comments=${showComments}&show_user=${showUser}&show_reposts=${showReposts}&visual=${visual}`;
 
   if (trackPath.includes('/sets/')) {
-    trackUrl = `https://w.soundcloud.com/player/?url=https%3A//soundcloud.com${trackPath}&color=${encodeURIComponent(color)}&auto_play=${autoPlay}&hide_related=${hideRelated}&show_comments=${showComments}&show_user=${showUser}&show_reposts=${showReposts}&visual=${visual}`
+    trackUrl = `https://w.soundcloud.com/player/?url=https%3A//soundcloud.com${trackPath}&color=${encodeURIComponent(color)}&auto_play=${autoPlay}&hide_related=${hideRelated}&show_comments=${showComments}&show_user=${showUser}&show_reposts=${showReposts}&visual=${visual}`;
   }
-    
 
   return (
-    <iframe
-      title="SoundCloud Web Player"
-      width={width}
-      height={height}
-      scrolling="no"
-      frameBorder={frameBorder}
-      allow={allow}
-      src={trackUrl}
-      style={{
-        borderRadius: 8,
-        ...style
-      }}
-       {...props}
-    />
+    <div style={{ width: '100%', maxWidth: width === "100%" ? '100%' : typeof width === 'number' ?  `${width}px` : width}} className="max-w-full">
+      <iframe
+        title="SoundCloud Web Player"
+        width="100%"
+        height={height}
+        scrolling="no"
+        frameBorder={frameBorder}
+        allow={allow}
+        src={trackUrl}
+        style={{
+          borderRadius: 8,
+          ...style,
+            display: "block"
+        }}
+        {...props}
+      />
+    </div>
   );
 };
