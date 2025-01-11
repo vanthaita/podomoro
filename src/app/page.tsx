@@ -5,18 +5,20 @@
 import PomodoroTimer from "@/components/PomodoroTimer";
 import BackgroundImage from "@/components/background/BackgroundImage";
 import { useState, useEffect, useRef } from 'react';
-import { faClock, faMusic, faVolumeUp, faVolumeMute, faVideo, faVideoSlash } from '@fortawesome/free-solid-svg-icons';
+import { faClock, faMusic, faVolumeUp, faVolumeMute, faVideo, faVideoSlash, faList, faTableList } from '@fortawesome/free-solid-svg-icons';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import { Button } from "@/components/ui/button";
-import { FaExpand, FaList, FaYoutube } from "react-icons/fa";
+import { FaExpand, FaYoutube, FaList, FaListAlt, FaListOl } from "react-icons/fa";
 import { FaSoundcloud } from "react-icons/fa";
 import SoundCloudEmbed from "@/components/SoundCloud/SoundCloudPlaylistEmbed";
 import axios from 'axios';
-import VideoCall from "@/components/video/VideoCall";
 import 'react-resizable/css/styles.css';
 import SheetButton from "@/components/SheetButton";
 import SettingsMenu from "@/components/settings/SettingsMenu";
 import SettingsButton from "@/components/settings/SettingsButton";
+import TodoList from "@/components/TodoList";
+
 interface YoutubeVideoType {
     id: string;
     title: string;
@@ -71,12 +73,16 @@ export default function Home() {
     const [isVideo, setIsVideo] = useState<boolean>(true);
     const containerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     const [loadingVideos, setLoadingVideos] = useState(true);
+    const [todoListVisible, setTodoListVisible] = useState(true);
+    const [todoPosition, setTodoPosition] = useState({ x: 40, y: 40 });
+
     const zIndices = {
         background: 1,
         videoCall: 2,
         timer: 3,
         soundCloud: 4,
-        buttons: 5,
+        todo: 5,
+        buttons: 6
     };
 
 
@@ -132,7 +138,9 @@ export default function Home() {
     const handleVideo = () => {
         setIsVideo(!isVideo);
     };
-
+    const toggleTodoList = () => {
+        setTodoListVisible(!todoListVisible);
+    }
     const handleYoutubeUrlSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const form = event.currentTarget;
@@ -223,7 +231,7 @@ export default function Home() {
                     onMuteChange={setIsMuted}
                 />
             </div>
-            {isVideo && (
+            {/* {isVideo && (
                 <div className="px-8 pt-16 pb-12 w-full h-full relative">
                     <div
                        ref={containerRef}
@@ -239,7 +247,7 @@ export default function Home() {
                         />
                    </div>
                 </div>
-            )}
+            )} */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" style={{ zIndex: zIndices.timer }}>
                {timerVisible && (
                     <PomodoroTimer
@@ -251,11 +259,27 @@ export default function Home() {
                     />
                 )}
             </div>
-             <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12" style={{ zIndex: zIndices.soundCloud }}>
+            <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12" style={{ zIndex: zIndices.soundCloud }}>
                 {soundCloudVisible && (
                     <SoundCloudEmbed uri={soundCloudUrl} small={true} />
                 )}
             </div>
+                {todoListVisible && (
+                <div className="px-8 pt-16 pb-12 w-full h-full relative">
+                    <div
+                        ref={containerRef}
+                        className=" w-full h-full rounded-xl relative"
+                        style={{ zIndex: zIndices.todo, minWidth: 250, minHeight: 200, }}
+                        >
+                        <TodoList
+                            todoPosition={todoPosition}
+                            setTodoPosition={setTodoPosition}
+                            containerRef={containerRef}
+                        />
+                    </div>
+                </div>
+
+                 )}
              <div className="absolute top-4 right-4 md:top-4 md:right-12  flex gap-x-2 md:gap-x-4 z-50" style={{ zIndex: zIndices.buttons }}>
                 <SettingsMenu>
                     <SettingsButton
@@ -268,16 +292,21 @@ export default function Home() {
                         icon={faMusic}
                         isActive={soundCloudVisible}
                     />
-                   <SettingsButton
+                    <SettingsButton
                         onClick={handleMuteToggle}
                         icon={isMuted ? faVolumeMute : faVolumeUp}
                        isActive={true}
                     />
-                   <SettingsButton
+                    <SettingsButton
                        onClick={handleVideo}
                        icon={isVideo ? faVideo : faVideoSlash}
                        isActive={true}
                    />
+                    <SettingsButton
+                        onClick={toggleTodoList}
+                        icon={faTableList}
+                        isActive={todoListVisible}
+                    />
                 </SettingsMenu>
                 <SheetButton
                     sheetOpen={soundCloudSheetOpen}

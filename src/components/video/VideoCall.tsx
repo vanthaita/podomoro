@@ -4,7 +4,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDrag } from 'react-use-gesture';
 import { cn } from '@/lib/utils';
-import { io, Socket } from 'socket.io-client'; // Import Socket type
+import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import Video from './Video';
 
