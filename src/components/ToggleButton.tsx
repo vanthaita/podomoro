@@ -7,7 +7,7 @@ import { faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 interface ToggleButtonProps {
     isVisible: boolean;
     onToggle: () => void;
-    icon: IconProp; // Loại icon
+    icon: IconProp;
 }
 
 const ToggleButton: React.FC<ToggleButtonProps> = ({ isVisible, onToggle, icon }) => {

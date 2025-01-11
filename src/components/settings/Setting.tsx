@@ -12,10 +12,6 @@ import 'react-tabs/style/react-tabs.css';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-// import BackgroundSettings from "./BackgroundSettings";
-// import GeneralSettings from "./GeneralSettings";
-// import SoundsSettings from "./SoundSettings";
-
 
 interface SettingsModalProps {
     initialSettings: {
@@ -145,30 +141,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ initialSettings, onSettin
                                >General</Tab>
                        </TabList>
                        <div className="flex-1 px-6">
-                            <TabPanel>
+                           <TabPanel>
                                 <TimersSettings
                                     initialSettings={settings}
                                     onSettingsChange={handleSettingsChange}
                                 />
                             </TabPanel>
-                            {/* <TabPanel>
-                                    <BackgroundSettings
-                                        initialSettings={settings}
-                                        onSettingsChange={handleSettingsChange}
-                                    />
+                            <TabPanel>
+                                    <div>Background settings not implemented yet</div>
                             </TabPanel>
                             <TabPanel>
-                                    <SoundsSettings
-                                        initialSettings={settings}
-                                        onSettingsChange={handleSettingsChange}
-                                    />
-                                </TabPanel>
-                            <TabPanel>
-                                <GeneralSettings
-                                    initialSettings={settings}
-                                        onSettingsChange={handleSettingsChange}
-                                />
-                            </TabPanel> */}
+                                    <div>Sounds settings not implemented yet</div>
+                            </TabPanel>
+                           <TabPanel>
+                                <div>General settings not implemented yet</div>
+                           </TabPanel>
                        </div>
                    </Tabs>
               </div>

@@ -7,7 +7,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import useLocalStorage from "@/hook/useLocalStorage";
-import SettingsModal from "./Setting";
+import SettingsModal from "./settings/Setting";
 
 interface PomodoroTimerProps {
     settings: {
