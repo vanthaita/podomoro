@@ -79,9 +79,9 @@ export default function Home() {
     const zIndices = {
         background: 1,
         videoCall: 2,
-        timer: 3,
-        soundCloud: 4,
-        todo: 5,
+        todo: 3,
+        timer: 4,
+        soundCloud: 5,
         buttons: 6
     };
 
