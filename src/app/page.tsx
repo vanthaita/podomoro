@@ -26,35 +26,12 @@ interface YoutubeVideoType {
 }
 
 interface SoundCloudPlaylist {
-    uri: string;
     name: string;
+    uri: string;
 }
 
 const GOOGLE_SHEET_ID = process.env.NEXT_PUBLIC_GOOGLE_SHEET_ID;
 const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-const exampleRecommendedPlaylists: SoundCloudPlaylist[] = [
-    {
-        uri: "https://soundcloud.com/devnguyxn/hanoiyeuem2",
-        name: "Playlist 1",
-    },
-    {
-        uri: "https://soundcloud.com/relaxing-music-production/sets/piano-covers",
-        name: "Playlist 2",
-    },
-    {
-        uri: "https://soundcloud.com/knightvibes/sets/calm-study-lofi-hiphop-beats",
-        name: "Playlist 3",
-    },
-    {
-        uri: "https://soundcloud.com/game-of-thrones-songs/opening-theme-game-of-thrones",
-        name: "Playlist 4",
-    },
-    {
-        uri: "https://soundcloud.com/alesia-arkusha/sets/miss-monique-mimo-weekly",
-        name: "Playlist 5",
-    },
-];
-
 
 export default function Home() {
     const [timerVisible, setTimerVisible] = useState<boolean>(true);
@@ -65,16 +42,17 @@ export default function Home() {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const fullscreenRef = useRef<HTMLDivElement>(null);
     const [soundCloudSheetOpen, setSoundCloudSheetOpen] = useState<boolean>(false);
-    const [soundCloudUrl, setSoundCloudUrl] = useState<string>("https://soundcloud.com/user943297256/sets/1yw05akauori");
-    const [recommendedPlaylists, setRecommendedPlaylists] = useState<SoundCloudPlaylist[]>(exampleRecommendedPlaylists);
+    const [soundCloudUrl, setSoundCloudUrl] = useState<string>("https://soundcloud.com/devnguyxn/hanoiyeuem2");
+    const [recommendedPlaylists, setRecommendedPlaylists] = useState<SoundCloudPlaylist[]>([]);
     const [isMuted, setIsMuted] = useState<boolean>(true);
     const [videoCallPosition, setVideoCallPosition] = useState({ x: 40, y: 40 });
     const [videoCallSize, setVideoCallSize] = useState({ width: 300, height: 200 });
     const [isVideo, setIsVideo] = useState<boolean>(true);
     const containerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     const [loadingVideos, setLoadingVideos] = useState(true);
+    const [loadingPlayList, setLoadingPlayList] = useState(true);
     const [todoListVisible, setTodoListVisible] = useState(true);
-    const [todoPosition, setTodoPosition] = useState({ x: 40, y: 40 });
+    const [todoPosition, setTodoPosition] = useState({ x: 20, y: 20 });
 
     const zIndices = {
         background: 1,
@@ -126,7 +104,41 @@ export default function Home() {
         };
         fetchVideos();
     }, []);
+    useEffect(() => {
+        const fetchPlayLists = async () => {
+            setLoadingPlayList(true);
+            try {
+                const response = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/Sheet2?key=${GOOGLE_API_KEY}`);
+                const data = await response.data;
+                const rows = data.values;
+                 if (!rows || rows.length < 2) {
+                    return;
+                }
+                const headers = rows[0];
+                const nameIndex = headers.indexOf('Name');
+                const urlIndex = headers.indexOf('Url');
 
+                if (nameIndex === -1 || urlIndex === -1) {
+                    return;
+                }
+                const fetchedPlaylists = rows.slice(1).map((row: string[]) => {
+                  return {
+                      name: row[nameIndex],
+                      uri: row[urlIndex],
+                  };
+                });
+
+
+                setRecommendedPlaylists(fetchedPlaylists);
+            } catch (error) {
+                console.error("Error fetching data from Google Sheets:", error);
+
+            } finally {
+                setLoadingPlayList(false);
+            }
+        };
+        fetchPlayLists();
+    }, []);
 
     const toggleTimer = () => {
         setTimerVisible(!timerVisible);
@@ -261,7 +273,7 @@ export default function Home() {
             </div>
             <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12" style={{ zIndex: zIndices.soundCloud }}>
                 {soundCloudVisible && (
-                    <SoundCloudEmbed uri={soundCloudUrl} small={true} />
+                    <SoundCloudEmbed uri={soundCloudUrl} />
                 )}
             </div>
                 {todoListVisible && (
