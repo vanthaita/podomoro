@@ -18,6 +18,9 @@ import SheetButton from "@/components/SheetButton";
 import SettingsMenu from "@/components/settings/SettingsMenu";
 import SettingsButton from "@/components/settings/SettingsButton";
 import TodoList from "@/components/TodoList";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import useLocalStorage from "@/hook/useLocalStorage";
 
 interface YoutubeVideoType {
     id: string;
@@ -52,8 +55,13 @@ export default function Home() {
     const [loadingVideos, setLoadingVideos] = useState(true);
     const [loadingPlayList, setLoadingPlayList] = useState(true);
     const [todoListVisible, setTodoListVisible] = useState(true);
-    const [todoPosition, setTodoPosition] = useState({ x: 20, y: 20 });
+    const [todoPosition, setTodoPosition] = useState({ x: 0, y: 0 });
 
+    const [userName, setUserName] = useLocalStorage<string>('pomodoroUserName', "Guest")
+    const [isRunning, setIsRunning] = useState<boolean>(false);
+    const [startTime, setStartTime] = useState<number>(0);
+    const [timestamp, setTimestamp] = useState<string>("");
+    
     const zIndices = {
         background: 1,
         videoCall: 2,
@@ -139,6 +147,151 @@ export default function Home() {
         };
         fetchPlayLists();
     }, []);
+     const formatTimestamp = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    };
+    const getLocalStorageData = () => {
+        try {
+            const storedData = localStorage.getItem('pomodoro_app_data');
+            if (storedData) {
+                return JSON.parse(storedData);
+            }
+            return {
+                isRunning: false,
+                startTime: 0,
+                timestamp: "",
+            };
+        } catch (error) {
+            console.error("Error reading data from local storage", error);
+            return {
+                isRunning: false,
+                startTime: 0,
+                timestamp: "",
+            };
+        }
+    };
+
+     const saveLocalStorageData = (data: any) => {
+        try {
+            localStorage.setItem('pomodoro_app_data', JSON.stringify(data));
+        } catch (error) {
+            console.error('Error saving to local storage', error);
+        }
+    };
+
+    const sendDataToGoogleSheet = async (data: any) => {
+        try {
+            const sheetData = [
+                userName,
+                data.timestamp,
+                data.totalTime,
+                data.focusTime,
+                data.shortBreakTime,
+                data.longBreakTime,
+                youtubeUrl,
+                soundCloudUrl
+            ];
+
+            await axios.post(
+                `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/Sheet3:append?valueInputOption=USER_ENTERED`,
+                { values: [sheetData] },
+                {
+                    params: { key: GOOGLE_API_KEY },
+                }
+            )
+            console.log(sheetData);
+           await toast(
+              "Data saved"
+           );
+        } catch (error) {
+            console.error("Error sending data to Google Sheets:", error);
+           await toast(
+                "Error"
+           );
+        }
+    };
+
+    const handleStartTimer = () => {
+        const now = Date.now();
+        const formattedTimestamp = formatTimestamp(new Date(now));
+        setStartTime(now);
+        setIsRunning(true);
+        setTimestamp(formattedTimestamp)
+        saveLocalStorageData({
+            isRunning: true,
+            startTime: now,
+            timestamp: formattedTimestamp,
+        });
+    }
+
+    const handleFinishTimer = async (workDuration: number, shortBreakDuration: number, longBreakDuration: number, actualTime: number) => {
+
+        setIsRunning(false);
+        const timeElapsed = actualTime
+        const focusTime = workDuration - (actualTime >= workDuration ? 0 : (workDuration - actualTime))
+        const shortBreakTime = actualTime > workDuration ? (actualTime > (workDuration+shortBreakDuration) ? shortBreakDuration :  (actualTime - workDuration) ) : 0
+        const longBreakTime = actualTime > (workDuration + shortBreakDuration)? actualTime - (workDuration + shortBreakDuration) : 0;
+
+        const dataToSave = {
+            timestamp: timestamp,
+            totalTime: timeElapsed,
+            focusTime: focusTime,
+            shortBreakTime: shortBreakTime,
+            longBreakTime: longBreakTime,
+        };
+        await sendDataToGoogleSheet(dataToSave);
+        console.log(dataToSave);
+        saveLocalStorageData({
+            isRunning: false,
+            startTime: 0,
+            timestamp: "",
+        });
+        setStartTime(0);
+        setTimestamp("");
+        
+    };
+
+    useEffect(() => {
+       const localStorageData = getLocalStorageData();
+        setIsRunning(localStorageData.isRunning);
+        setStartTime(localStorageData.startTime);
+        setTimestamp(localStorageData.timestamp);
+
+       const handleBeforeUnload = async (event: any) => {
+             if (isRunning) {
+                 const now = Date.now();
+                 const timeElapsed = Math.round((now - startTime) / 1000)
+                 const localStorageData = getLocalStorageData()
+                 const nowTimeStamp = formatTimestamp(new Date(localStorageData.startTime))
+
+                 const dataToSave = {
+                    timestamp: nowTimeStamp,
+                    totalTime: timeElapsed,
+                     focusTime: 0,
+                    shortBreakTime: 0,
+                    longBreakTime: 0,
+                 };
+                await sendDataToGoogleSheet(dataToSave);
+           }
+            saveLocalStorageData({
+                isRunning: false,
+                startTime: 0,
+                timestamp: "",
+            });
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [isRunning, startTime]);
 
     const toggleTimer = () => {
         setTimerVisible(!timerVisible);
@@ -236,6 +389,7 @@ export default function Home() {
 
     return (
         <div className="relative h-screen w-screen overflow-hidden" ref={fullscreenRef}>
+            <ToastContainer />
             <div style={{ zIndex: zIndices.background }}>
                 <BackgroundImage
                     youtubeUrl={youtubeUrl}
@@ -268,6 +422,8 @@ export default function Home() {
                             shortBreakDuration: 5 * 60,
                             longBreakDuration: 15 * 60,
                         }}
+                        onStart={handleStartTimer}
+                         onFinish={handleFinishTimer}
                     />
                 )}
             </div>
@@ -293,6 +449,15 @@ export default function Home() {
 
                  )}
              <div className="absolute top-4 right-4 md:top-4 md:right-12  flex gap-x-2 md:gap-x-4 z-50" style={{ zIndex: zIndices.buttons }}>
+                 {/* <div className="flex items-center space-x-2 md:space-x-4">
+                    <input
+                        type="text"
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        className="bg-white text-black rounded p-2 text-sm md:text-base"
+                        placeholder="Enter username"
+                    />
+                </div> */}
                 <SettingsMenu>
                     <SettingsButton
                         onClick={toggleTimer}

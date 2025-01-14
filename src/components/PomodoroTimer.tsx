@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { FaCog, FaRedo } from "react-icons/fa";
 import {
@@ -15,9 +15,11 @@ interface PomodoroTimerProps {
         shortBreakDuration: number;
         longBreakDuration: number;
     };
+    onStart: () => void;
+    onFinish: (workDuration: number, shortBreakDuration: number, longBreakDuration: number, actualTime: number) => Promise<void>;
 }
 
-const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ settings }) => {
+const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ settings, onStart, onFinish }) => {
     const [persistedSettings, setPersistedSettings] = useLocalStorage('pomodoroSettings', settings);
     const [secondsLeft, setSecondsLeft] = useState<number>(settings.workDuration);
     const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -26,6 +28,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ settings }) => {
     const [showSettings, setShowSettings] = useState<boolean>(false);
     const [completedRounds, setCompletedRounds] = useState<number>(0);
     const [isClient, setIsClient] = useState(false);
+    const [startTime, setStartTime] = useState<number>(0);
 
     useEffect(() => {
         if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -48,65 +51,80 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ settings }) => {
     }, [persistedSettings, isClient]);
 
 
-    const handlePhaseChange = useCallback(() => {
-        let nextPhase: "Work" | "Short Break" | "Long Break" = "Work";
+     useEffect(() => {
+            let interval: NodeJS.Timeout;
 
-        if (currentPhase === "Work") {
-            setCompletedRounds(prev => prev + 1);
-            if (completedRounds > 0 && completedRounds % 4 === 0) {
-                nextPhase = "Long Break";
-                setSecondsLeft(longBreakDuration);
-                setSelectedType('long');
-
-            } else {
-                nextPhase = "Short Break";
-                setSecondsLeft(shortBreakDuration);
-                setSelectedType('short');
-            }
-        } else {
-            nextPhase = "Work";
-            setSecondsLeft(workDuration);
-            setSelectedType('pomodoro');
-        }
-
-        setCurrentPhase(nextPhase);
-
-        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-            let notificationBody = "";
-            if (nextPhase === "Work") {
-                notificationBody = "Time to get back to work!";
-            } else if (nextPhase === "Short Break") {
-                notificationBody = "Short break time!";
-            }
-            else {
-                notificationBody = "Time to take a long break";
-            }
-            new Notification(nextPhase + ' session End!', { body: notificationBody });
-        }
-        setIsRunning(true);
-
-    }, [currentPhase, longBreakDuration, shortBreakDuration, workDuration, setSecondsLeft, setSelectedType, setIsRunning, completedRounds]);
-
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-
-        if (isRunning) {
-            interval = setInterval(() => {
-                setSecondsLeft((prevSeconds) => {
-                    if (prevSeconds <= 0) {
-                        clearInterval(interval);
-                        handlePhaseChange();
-                        return 0;
+            const handlePhaseChange = () => {
+                let nextPhase: "Work" | "Short Break" | "Long Break" = "Work";
+        
+                if (currentPhase === "Work") {
+                    setCompletedRounds(prev => prev + 1);
+                    if (completedRounds > 0 && completedRounds % 4 === 0) {
+                        nextPhase = "Long Break";
+                        setSecondsLeft(longBreakDuration);
+                        setSelectedType('long');
+        
+                    } else {
+                        nextPhase = "Short Break";
+                        setSecondsLeft(shortBreakDuration);
+                        setSelectedType('short');
                     }
-                    return prevSeconds - 1;
-                });
-            }, 1000);
-        }
-        return () => clearInterval(interval);
-    }, [isRunning, secondsLeft, handlePhaseChange]);
+                } else {
+                    nextPhase = "Work";
+                    setSecondsLeft(workDuration);
+                    setSelectedType('pomodoro');
+                }
+        
+                setCurrentPhase(nextPhase);
+        
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                    let notificationBody = "";
+                    if (nextPhase === "Work") {
+                        notificationBody = "Time to get back to work!";
+                    } else if (nextPhase === "Short Break") {
+                        notificationBody = "Short break time!";
+                    }
+                    else {
+                        notificationBody = "Time to take a long break";
+                    }
+                    new Notification(nextPhase + ' session End!', { body: notificationBody });
+                }
+                 setIsRunning(true)
+                 setStartTime(Date.now())
+        
+            };
+
+            if (isRunning) {
+                interval = setInterval(() => {
+                    setSecondsLeft((prevSeconds) => {
+                        if (prevSeconds <= 0) {
+                            clearInterval(interval);
+                            handlePhaseChange();
+                            return 0;
+                        }
+                        return prevSeconds - 1;
+                    });
+                }, 1000);
+            }
+
+            return () => {
+                clearInterval(interval);
+                    if(!isRunning && secondsLeft <= 0 && startTime !== 0){
+                        const timeElapsed = Math.round((Date.now() - startTime)/1000);
+                        onFinish(workDuration, shortBreakDuration, longBreakDuration, timeElapsed);
+                        setStartTime(0);
+                    }
+                };
+        }, [isRunning, secondsLeft, onFinish, workDuration, shortBreakDuration, longBreakDuration, startTime, completedRounds, currentPhase, setCompletedRounds, setCurrentPhase, setSecondsLeft, setIsRunning, setSelectedType, setStartTime]);
+
 
     const handleStartStop = () => {
         setIsRunning((prevState) => !prevState);
+        if(!isRunning) {
+             onStart();
+             setStartTime(Date.now())
+        }
+
     };
 
     const handleReset = () => {
@@ -126,6 +144,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ settings }) => {
                     ? "Short Break"
                     : "Long Break"
         );
+        setStartTime(0);
     };
 
     const handleTypeChange = (type: "pomodoro" | "short" | "long") => {
@@ -140,6 +159,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ settings }) => {
                     ? shortBreakDuration
                     : longBreakDuration
         );
+         setStartTime(0);
     };
 
     const formatTime = (timeInSeconds: number): string => {

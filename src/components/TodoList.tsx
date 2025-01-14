@@ -188,6 +188,8 @@ const TodoList: React.FC<Props> = ({
             className="absolute bg-white p-4 rounded-lg shadow-md w-80 dark:bg-gray-800"
             style={{
                 transform: `translate(${todoPosition.x}px, ${todoPosition.y}px)`,
+                // left: todoPosition.x,
+                // top: todoPosition.y,
                 cursor: "pointer",
             }}
             {...bind()}
